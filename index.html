@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Event Countdown</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Tokens ─────────────────────────────────────────────── */
+    :root {
+      --bg:        #0b0f1a;
+      --surface:   #131929;
+      --border:    #1e2a45;
+      --accent:    #4f8ef7;
+      --accent-dim:#1a3266;
+      --text:      #e8edf8;
+      --muted:     #5a6a8a;
+      --digit-bg:  #0f1624;
+    }
+
+    /* ── Reset ──────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2.5rem;
+      padding: 2rem;
+    }
+
+    /* ── Event name ─────────────────────────────────────────── */
+    #event-name {
+      font-size: clamp(1.1rem, 3vw, 1.5rem);
+      font-weight: 300;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ── Countdown row ──────────────────────────────────────── */
+    #countdown {
+      display: flex;
+      gap: clamp(0.75rem, 3vw, 2rem);
+      align-items: flex-end;
+    }
+
+    .unit {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .digits {
+      font-family: 'Space Mono', monospace;
+      font-size: clamp(3rem, 12vw, 7rem);
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -0.02em;
+      background: var(--digit-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.25em 0.45em;
+      min-width: 2.4ch;
+      text-align: center;
+      color: var(--accent);
+      /* subtle inner glow */
+      box-shadow: inset 0 0 40px rgba(79,142,247,0.06);
+      transition: color 0.3s;
+    }
+
+    .label {
+      font-size: clamp(0.55rem, 1.8vw, 0.7rem);
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* separator colon */
+    .sep {
+      font-family: 'Space Mono', monospace;
+      font-size: clamp(2rem, 8vw, 5rem);
+      font-weight: 700;
+      color: var(--border);
+      padding-bottom: 0.55em;
+      user-select: none;
+    }
+
+    /* ── Thin accent line ───────────────────────────────────── */
+    .line {
+      width: min(480px, 90vw);
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent-dim), transparent);
+    }
+
+    /* ── Date string ────────────────────────────────────────── */
+    #event-date {
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+    }
+
+    /* ── Expired message ────────────────────────────────────── */
+    #expired {
+      display: none;
+      font-size: clamp(1.4rem, 5vw, 2.4rem);
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.06em;
+      text-align: center;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .digits { transition: transform 0.15s ease, color 0.3s; }
+      .digits.tick { transform: scale(1.04); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ① Edit the event name here -->
+  <p id="event-name">My Event</p>
+
+  <div id="countdown">
+    <div class="unit">
+      <span class="digits" id="days">00</span>
+      <span class="label">Days</span>
+    </div>
+    <span class="sep">:</span>
+    <div class="unit">
+      <span class="digits" id="hours">00</span>
+      <span class="label">Hours</span>
+    </div>
+    <span class="sep">:</span>
+    <div class="unit">
+      <span class="digits" id="minutes">00</span>
+      <span class="label">Minutes</span>
+    </div>
+  </div>
+
+  <div class="line"></div>
+
+  <!-- ② Edit the displayed date text here -->
+  <p id="event-date">1 January 2026 · 00:00</p>
+
+  <p id="expired">The event has begun!</p>
+
+  <script>
+    // ════════════════════════════════════════════════════
+    //  ★  CUSTOMISE THESE TWO LINES  ★
+    // ════════════════════════════════════════════════════
+    const EVENT_NAME = "Global Metocean Workshop 2026 Countdown Clock";          // ← your event name
+    const EVENT_DATE = "2026-11-09T00:00:00"; // ← ISO 8601 date/time
+    // ════════════════════════════════════════════════════
+
+    // Update the visible labels from JS (keeps them in sync)
+    document.getElementById("event-name").textContent = EVENT_NAME;
+
+    const target = new Date(EVENT_DATE).getTime();
+    const daysEl    = document.getElementById("days");
+    const hoursEl   = document.getElementById("hours");
+    const minsEl    = document.getElementById("minutes");
+    const countdown = document.getElementById("countdown");
+    const expired   = document.getElementById("expired");
+
+    function pad(n) { return String(n).padStart(2, "0"); }
+
+    function flash(el) {
+      el.classList.remove("tick");
+      void el.offsetWidth; // reflow
+      el.classList.add("tick");
+      setTimeout(() => el.classList.remove("tick"), 150);
+    }
+
+    function update() {
+      const now  = Date.now();
+      const diff = target - now;
+
+      if (diff <= 0) {
+        countdown.style.display = "none";
+        expired.style.display   = "block";
+        return;
+      }
+
+      const totalMinutes = Math.floor(diff / 60000);
+      const totalHours   = Math.floor(totalMinutes / 60);
+      const days         = Math.floor(totalHours / 24);
+      const hours        = totalHours % 24;
+      const minutes      = totalMinutes % 60;
+
+      const pd = pad(days), ph = pad(hours), pm = pad(minutes);
+
+      if (daysEl.textContent  !== pd) { daysEl.textContent  = pd; flash(daysEl);  }
+      if (hoursEl.textContent !== ph) { hoursEl.textContent = ph; flash(hoursEl); }
+      if (minsEl.textContent  !== pm) { minsEl.textContent  = pm; flash(minsEl);  }
+    }
+
+    update();
+    setInterval(update, 10000); // refresh every 10 seconds
+  </script>
+</body>
+</html>

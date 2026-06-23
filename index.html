@@ -8,23 +8,20 @@
   <style>
     /* ── Tokens ─────────────────────────────────────────────── */
     :root {
-      --bg:        #0b0f1a;
-      --surface:   #131929;
-      --border:    #1e2a45;
-      --accent:    #4f8ef7;
-      --accent-dim:#1a3266;
-      --text:      #e8edf8;
-      --muted:     #5a6a8a;
-      --digit-bg:  #0f1624;
+      --accent:     #ffffff;
+      --accent-dim: rgba(255,255,255,0.25);
+      --text:       #ffffff;
+      --muted:      rgba(255,255,255,0.7);
+      --digit-bg:   rgba(0,0,0,0.45);
+      --border:     rgba(255,255,255,0.18);
+      --overlay:    rgba(0,0,0,0.45); /* darken the photo so text pops */
     }
 
     /* ── Reset ──────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* ── Background image layer ─────────────────────────────── */
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Inter', sans-serif;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
@@ -32,6 +29,23 @@
       justify-content: center;
       gap: 2.5rem;
       padding: 2rem;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+
+      /* ════════════════════════════════════════════════════
+         ★  SET YOUR IMAGE HERE  ★
+         Replace 'background.jpg' with your image filename.
+         The image must be in the same folder as index.html.
+         ════════════════════════════════════════════════════ */
+      background-image:
+        linear-gradient(var(--overlay), var(--overlay)),
+        url('background.jpg');
+
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed; /* parallax-style: image stays still while scrolling */
+      background-repeat: no-repeat;
+      background-color: #111; /* fallback if image is missing */
     }
 
     /* ── Event name ─────────────────────────────────────────── */
@@ -41,6 +55,7 @@
       letter-spacing: 0.22em;
       text-transform: uppercase;
       color: var(--muted);
+      text-shadow: 0 1px 6px rgba(0,0,0,0.6);
     }
 
     /* ── Countdown row ──────────────────────────────────────── */
@@ -70,8 +85,10 @@
       min-width: 2.4ch;
       text-align: center;
       color: var(--accent);
-      /* subtle inner glow */
-      box-shadow: inset 0 0 40px rgba(79,142,247,0.06);
+      /* frosted glass effect */
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.35);
       transition: color 0.3s;
     }
 
@@ -81,6 +98,7 @@
       letter-spacing: 0.2em;
       text-transform: uppercase;
       color: var(--muted);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.7);
     }
 
     /* separator colon */
@@ -105,6 +123,7 @@
       font-size: 0.78rem;
       letter-spacing: 0.12em;
       color: var(--muted);
+      text-shadow: 0 1px 4px rgba(0,0,0,0.7);
     }
 
     /* ── Expired message ────────────────────────────────────── */
@@ -115,6 +134,7 @@
       color: var(--accent);
       letter-spacing: 0.06em;
       text-align: center;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.6);
     }
 
     @media (prefers-reduced-motion: no-preference) {
@@ -125,7 +145,6 @@
 </head>
 <body>
 
-  <!-- ① Edit the event name here -->
   <p id="event-name">My Event</p>
 
   <div id="countdown">
@@ -147,8 +166,7 @@
 
   <div class="line"></div>
 
-  <!-- ② Edit the displayed date text here -->
-  <p id="event-date">1 January 2026 · 00:00</p>
+  <p id="event-date">9 November 2026 · 08:00</p>
 
   <p id="expired">The event has begun!</p>
 
@@ -156,14 +174,13 @@
     // ════════════════════════════════════════════════════
     //  ★  CUSTOMISE THESE TWO LINES  ★
     // ════════════════════════════════════════════════════
-    const EVENT_NAME = "Global Metocean Workshop 2026 Countdown Clock";          // ← your event name
-    const EVENT_DATE = "2026-11-09T00:00:00"; // ← ISO 8601 date/time
+    const EVENT_NAME = "My Event";
+    const EVENT_DATE = "2026-12-31T00:00:00";
     // ════════════════════════════════════════════════════
 
-    // Update the visible labels from JS (keeps them in sync)
     document.getElementById("event-name").textContent = EVENT_NAME;
 
-    const target = new Date(EVENT_DATE).getTime();
+    const target    = new Date(EVENT_DATE).getTime();
     const daysEl    = document.getElementById("days");
     const hoursEl   = document.getElementById("hours");
     const minsEl    = document.getElementById("minutes");
@@ -174,36 +191,32 @@
 
     function flash(el) {
       el.classList.remove("tick");
-      void el.offsetWidth; // reflow
+      void el.offsetWidth;
       el.classList.add("tick");
       setTimeout(() => el.classList.remove("tick"), 150);
     }
 
     function update() {
-      const now  = Date.now();
-      const diff = target - now;
-
+      const diff = target - Date.now();
       if (diff <= 0) {
         countdown.style.display = "none";
         expired.style.display   = "block";
         return;
       }
-
-      const totalMinutes = Math.floor(diff / 60000);
-      const totalHours   = Math.floor(totalMinutes / 60);
-      const days         = Math.floor(totalHours / 24);
-      const hours        = totalHours % 24;
-      const minutes      = totalMinutes % 60;
+      const totalMins  = Math.floor(diff / 60000);
+      const totalHours = Math.floor(totalMins / 60);
+      const days    = Math.floor(totalHours / 24);
+      const hours   = totalHours % 24;
+      const minutes = totalMins % 60;
 
       const pd = pad(days), ph = pad(hours), pm = pad(minutes);
-
       if (daysEl.textContent  !== pd) { daysEl.textContent  = pd; flash(daysEl);  }
       if (hoursEl.textContent !== ph) { hoursEl.textContent = ph; flash(hoursEl); }
       if (minsEl.textContent  !== pm) { minsEl.textContent  = pm; flash(minsEl);  }
     }
 
     update();
-    setInterval(update, 10000); // refresh every 10 seconds
+    setInterval(update, 10000);
   </script>
 </body>
 </html>
